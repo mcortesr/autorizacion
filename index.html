@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Autorización y ficha médica · Salida scout</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;800&family=Public+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+<style id="css">
+:root{
+  --bg:#E8EEE7; --surface:#FFFFFF; --ink:#16241C; --muted:#55655A; --line:#C6D2C8;
+  --forest:#245A41; --on-forest:#FFFFFF; --khaki:#9C7628; --khaki-soft:#F3EAD3;
+  --danger:#A3352F; --chip:#EEF3EE;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1712; --surface:#16231B; --ink:#E5EDE6; --muted:#9BAD9F; --line:#2D3F33;
+    --forest:#62B089; --on-forest:#0B1610; --khaki:#D4B062; --khaki-soft:#2B261A;
+    --danger:#E58176; --chip:#1D2C23;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1712; --surface:#16231B; --ink:#E5EDE6; --muted:#9BAD9F; --line:#2D3F33;
+  --forest:#62B089; --on-forest:#0B1610; --khaki:#D4B062; --khaki-soft:#2B261A;
+  --danger:#E58176; --chip:#1D2C23;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 76px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.5 "Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+h1,h2,h3{font-family:Bitter,Georgia,"Times New Roman",serif;margin:0}
+.wrap{max-width:640px;margin:0 auto;padding:0 16px 120px}
+
+/* Encabezado de actividad */
+.hero{background:var(--forest);color:var(--on-forest);padding:28px 20px 24px;border-radius:0 0 22px 22px;margin:0 -16px}
+.hero small{display:block;opacity:.85;font-size:14px;margin-bottom:6px}
+.hero h1{font-size:clamp(28px,8vw,40px);line-height:1.08;font-weight:800;letter-spacing:-.01em}
+.hero dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:18px 0 0;font-size:15px}
+.hero dt{opacity:.8}
+.hero dd{margin:0;font-weight:500}
+
+/* Progreso */
+.steps{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding:12px 0 10px;margin-top:4px}
+.steps ol{list-style:none;display:flex;gap:6px;margin:0;padding:0}
+.steps li{flex:1}
+.steps button{width:100%;border:0;background:none;padding:0;cursor:pointer;color:var(--muted);font:500 12px/1.2 "Public Sans",sans-serif;text-align:left}
+.steps button:disabled{cursor:default}
+.steps .bar{display:block;height:5px;border-radius:3px;background:var(--line);margin-bottom:6px}
+.steps .done .bar{background:var(--forest)}
+.steps .now .bar{background:var(--khaki)}
+.steps .now{color:var(--ink)}
+.steps .lbl{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Secciones */
+section.step{display:none}
+section.step.on{display:block}
+.step > h2{font-size:26px;font-weight:800;margin:14px 0 4px}
+.step > p.intro{color:var(--muted);margin:0 0 18px;font-size:15px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:6px 16px 14px;margin-bottom:14px}
+.card > h3{font-size:18px;font-weight:600;padding:12px 0 2px;color:var(--forest)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.f{grid-column:1/-1;padding-top:14px}
+.f.half{grid-column:span 1}
+.f[hidden]{display:none}
+.f > label,.f > .q{display:block;font-weight:500;font-size:15px;margin-bottom:6px}
+.f .hint{display:block;color:var(--muted);font-size:13px;font-weight:400;margin-top:-3px;margin-bottom:6px}
+.req::after{content:" *";color:var(--danger)}
+input[type=text],input[type=tel],input[type=date],input[type=number],select,textarea{
+  width:100%;font:inherit;font-size:17px;color:var(--ink);background:var(--surface);
+  border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;min-height:48px;appearance:none;-webkit-appearance:none}
+select{background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 20px) 21px,calc(100% - 14px) 21px;background-size:6px 6px;background-repeat:no-repeat;padding-right:36px}
+textarea{min-height:92px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--forest);box-shadow:0 0 0 3px color-mix(in srgb,var(--forest) 25%,transparent)}
+.f.err input,.f.err select,.f.err textarea,.f.err .seg,.f.err .sig{border-color:var(--danger)}
+.f .msg{color:var(--danger);font-size:13px;margin-top:5px;display:none}
+.f.err .msg{display:block}
+.f .calc{color:var(--muted);font-size:13px;margin-top:5px}
+
+/* Sí / No */
+.seg{display:flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.seg label{flex:1;position:relative;text-align:center;cursor:pointer}
+.seg label + label{border-left:1.5px solid var(--line)}
+.seg input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.seg span{display:block;padding:12px 6px;font-weight:500;min-height:46px}
+.seg input:checked + span{background:var(--forest);color:var(--on-forest)}
+.seg input:focus-visible + span{outline:3px solid var(--khaki);outline-offset:-3px}
+
+/* Casillas */
+.checks{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ck{display:flex;gap:10px;align-items:flex-start;background:var(--chip);border:1.5px solid transparent;border-radius:10px;padding:11px 12px;cursor:pointer;font-size:15px;line-height:1.35}
+.ck input{width:20px;height:20px;margin:0;flex:none;accent-color:var(--forest)}
+.ck:has(input:checked){border-color:var(--forest)}
+.ck.long{grid-column:1/-1;background:var(--khaki-soft)}
+.f.single .ck{background:var(--khaki-soft)}
+
+/* Firma */
+.sig{position:relative;border:1.5px dashed var(--muted);border-radius:12px;background:var(--surface);touch-action:none}
+.sig canvas{display:block;width:100%;height:170px}
+.sig .ph{position:absolute;left:14px;bottom:12px;color:var(--muted);font-size:14px;pointer-events:none}
+.sig .line{position:absolute;left:14px;right:14px;bottom:38px;border-top:1px solid var(--line);pointer-events:none}
+.linkbtn{background:none;border:0;color:var(--forest);font:500 15px "Public Sans",sans-serif;padding:8px 0;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+
+/* Navegación inferior */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px))}
+.nav .in{max-width:640px;margin:0 auto;display:flex;gap:10px}
+.btn{font:700 16px "Public Sans",sans-serif;border-radius:12px;padding:14px 18px;min-height:52px;cursor:pointer;border:1.5px solid var(--line);background:var(--surface);color:var(--ink)}
+.btn.primary{flex:1;background:var(--forest);color:var(--on-forest);border-color:var(--forest)}
+.btn:focus-visible,.linkbtn:focus-visible,.steps button:focus-visible{outline:3px solid var(--khaki);outline-offset:2px}
+.btn[disabled]{opacity:.6;cursor:progress}
+
+.note{font-size:13px;color:var(--muted);margin:14px 0 0}
+.done-box{background:var(--khaki-soft);border-radius:14px;padding:16px;margin-top:14px;display:none}
+.done-box.on{display:block}
+.done-box h3{font-size:19px;margin-bottom:6px}
+.done-box p{margin:0 0 6px;font-size:15px}
+.legal{font-size:14px;color:var(--muted);line-height:1.5;margin:10px 0 0}
+@media (max-width:380px){.checks{grid-template-columns:1fr}.grid{grid-template-columns:1fr}.f.half{grid-column:1/-1}}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+
+/* Edición de la salida (solo quien puede editar) */
+.hero .edit{margin-top:16px;background:transparent;color:var(--on-forest);border:1.5px solid currentColor;border-radius:10px;padding:9px 14px;font:600 15px "Public Sans",sans-serif;cursor:pointer}
+.hero .edit[hidden]{display:none}
+dialog{border:0;border-radius:16px;padding:0;width:min(560px,calc(100vw - 24px));max-height:calc(100dvh - 24px);background:var(--surface);color:var(--ink)}
+dialog::backdrop{background:rgba(8,16,12,.55)}
+dialog .in{padding:20px 18px 18px}
+dialog h2{font-size:22px;margin-bottom:4px}
+dialog p.sub{color:var(--muted);font-size:14px;margin:0 0 6px}
+dialog .row{display:flex;gap:10px;margin-top:18px}
+dialog .row .btn{flex:1}
+dialog .err{color:var(--danger);font-size:14px;margin-top:10px;min-height:1em}
+input:disabled,select:disabled{background:var(--chip);color:var(--ink);opacity:1;-webkit-text-fill-color:var(--ink);border-style:dashed}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <small>Autorización y ficha médica para la salida</small>
+    <h1 id="actNombre"></h1>
+    <dl>
+      <dt>Fecha</dt><dd id="actFecha"></dd>
+      <dt>Lugar</dt><dd id="actLugar"></dd>
+    </dl>
+    <button type="button" class="edit" id="editBtn" hidden>Editar datos de la salida</button>
+  </header>
+
+  <nav class="steps" aria-label="Avance del formulario"><ol id="stepList"></ol></nav>
+
+  <main id="form"></main>
+
+  <div class="done-box" id="doneBox" role="status" aria-live="polite">
+    <h3>PDF listo</h3>
+    <p id="doneMsg"></p>
+    <p>Envíalo a la dirigencia de la unidad por WhatsApp o correo. Si necesitas corregir algo, edita el formulario y vuelve a generarlo.</p>
+  </div>
+</div>
+
+<div class="nav"><div class="in">
+  <button class="btn" id="prevBtn" type="button">Atrás</button>
+  <button class="btn primary" id="nextBtn" type="button">Siguiente</button>
+</div></div>
+
+
+<dialog id="editDlg" aria-labelledby="editTitle">
+  <div class="in">
+    <h2 id="editTitle">Datos de la salida</h2>
+    <p class="sub">Al guardar, el formulario se actualiza para todos los apoderados que tengan el enlace.</p>
+    <div class="f"><label for="e_nombre" class="req">Nombre de la actividad</label><input type="text" id="e_nombre"></div>
+    <div class="f"><label for="e_fechas" class="req">Fecha o fechas</label><span class="hint">Tal como quieres que aparezca. Ej.: 14 y 15 de noviembre de 2026</span><input type="text" id="e_fechas"></div>
+    <div class="f"><label for="e_lugar" class="req">Lugar</label><input type="text" id="e_lugar"></div>
+    <div class="f"><label for="e_grupo">Nombre del grupo</label><span class="hint">El grupo, la rama, la zona y el distrito quedan fijos en el formulario; los apoderados no los llenan</span><input type="text" id="e_grupo"></div>
+    <div class="f"><label for="e_rama">Rama</label><select id="e_rama"></select></div>
+    <div class="f half"><label for="e_zona">Zona</label><input type="text" id="e_zona"></div>
+    <div class="f half"><label for="e_distrito">Distrito</label><input type="text" id="e_distrito"></div>
+    <div class="f"><label for="e_resp">Dirigente o guiadora responsable</label><span class="hint">Aparece en la línea de firma de la ficha</span><input type="text" id="e_resp"></div>
+    <div class="err" id="editErr" role="alert"></div>
+    <div class="row">
+      <button type="button" class="btn" id="editCancel">Cancelar</button>
+      <button type="button" class="btn primary" id="editSave">Guardar y publicar</button>
+    </div>
+  </div>
+</dialog>
+<script id="actividad-data" type="application/json">
+{
+  "nombre": "Trekking Urbano",
+  "fechas": "07-11-2026",
+  "lugar": "Cerro San Cristóbal",
+  "grupo": "Feanor",
+  "rama": "Scouts",
+  "zona": "Norte",
+  "distrito": "Renca",
+  "responsable": "Nicolás López"
+}
+</script>
+<script id="app">
+/* ===== Datos de la actividad: cambiar aquí para cada salida ===== */
+/* Los datos de la salida viven en el bloque #actividad-data y se cambian desde el botón «Editar datos de la salida». */
+const ACTIVIDAD = Object.assign({"nombre":"","fechas":"","lugar":"","grupo":"","rama":"","zona":"","distrito":"","responsable":""}, JSON.parse(document.getElementById("actividad-data").textContent || "{}"));
+const PAGE_HEAD = "<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">\n<title>Autorización y ficha médica · Salida scout<\/title>\n<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n<link href=\"https://fonts.googleapis.com/css2?family=Bitter:wght@600;800&family=Public+Sans:wght@400;500;700&display=swap\" rel=\"stylesheet\">\n<script src=\"https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js\"><\/script>\n<script src=\"https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js\"><\/script>";
+const PAGE_BODY = "<div class=\"wrap\">\n  <header class=\"hero\">\n    <small>Autorización y ficha médica para la salida<\/small>\n    <h1 id=\"actNombre\"><\/h1>\n    <dl>\n      <dt>Fecha<\/dt><dd id=\"actFecha\"><\/dd>\n      <dt>Lugar<\/dt><dd id=\"actLugar\"><\/dd>\n    <\/dl>\n    <button type=\"button\" class=\"edit\" id=\"editBtn\" hidden>Editar datos de la salida<\/button>\n  <\/header>\n\n  <nav class=\"steps\" aria-label=\"Avance del formulario\"><ol id=\"stepList\"><\/ol><\/nav>\n\n  <main id=\"form\"><\/main>\n\n  <div class=\"done-box\" id=\"doneBox\" role=\"status\" aria-live=\"polite\">\n    <h3>PDF listo<\/h3>\n    <p id=\"doneMsg\"><\/p>\n    <p>Envíalo a la dirigencia de la unidad por WhatsApp o correo. Si necesitas corregir algo, edita el formulario y vuelve a generarlo.<\/p>\n  <\/div>\n<\/div>\n\n<div class=\"nav\"><div class=\"in\">\n  <button class=\"btn\" id=\"prevBtn\" type=\"button\">Atrás<\/button>\n  <button class=\"btn primary\" id=\"nextBtn\" type=\"button\">Siguiente<\/button>\n<\/div><\/div>\n\n\n<dialog id=\"editDlg\" aria-labelledby=\"editTitle\">\n  <div class=\"in\">\n    <h2 id=\"editTitle\">Datos de la salida<\/h2>\n    <p class=\"sub\">Al guardar, el formulario se actualiza para todos los apoderados que tengan el enlace.<\/p>\n    <div class=\"f\"><label for=\"e_nombre\" class=\"req\">Nombre de la actividad<\/label><input type=\"text\" id=\"e_nombre\"><\/div>\n    <div class=\"f\"><label for=\"e_fechas\" class=\"req\">Fecha o fechas<\/label><span class=\"hint\">Tal como quieres que aparezca. Ej.: 14 y 15 de noviembre de 2026<\/span><input type=\"text\" id=\"e_fechas\"><\/div>\n    <div class=\"f\"><label for=\"e_lugar\" class=\"req\">Lugar<\/label><input type=\"text\" id=\"e_lugar\"><\/div>\n    <div class=\"f\"><label for=\"e_grupo\">Nombre del grupo<\/label><span class=\"hint\">El grupo, la rama, la zona y el distrito quedan fijos en el formulario; los apoderados no los llenan<\/span><input type=\"text\" id=\"e_grupo\"><\/div>\n    <div class=\"f\"><label for=\"e_rama\">Rama<\/label><select id=\"e_rama\"><\/select><\/div>\n    <div class=\"f half\"><label for=\"e_zona\">Zona<\/label><input type=\"text\" id=\"e_zona\"><\/div>\n    <div class=\"f half\"><label for=\"e_distrito\">Distrito<\/label><input type=\"text\" id=\"e_distrito\"><\/div>\n    <div class=\"f\"><label for=\"e_resp\">Dirigente o guiadora responsable<\/label><span class=\"hint\">Aparece en la línea de firma de la ficha<\/span><input type=\"text\" id=\"e_resp\"><\/div>\n    <div class=\"err\" id=\"editErr\" role=\"alert\"><\/div>\n    <div class=\"row\">\n      <button type=\"button\" class=\"btn\" id=\"editCancel\">Cancelar<\/button>\n      <button type=\"button\" class=\"btn primary\" id=\"editSave\">Guardar y publicar<\/button>\n    <\/div>\n  <\/div>\n<\/dialog>";
+function pageSource(act){
+  const css = document.getElementById("css").textContent;
+  const js = document.getElementById("app").textContent;
+  const json = JSON.stringify(act, null, 2).replace(/</g, "\\u003c");
+  return "<!DOCTYPE html>\n<html lang=\"es\">\n<head>\n" + PAGE_HEAD + "\n<style id=\"css\">" + css + "</style>\n</head>\n<body>\n" + PAGE_BODY +
+    "\n<script id=\"actividad-data\" type=\"application/json\">\n" + json + "\n</scr" + "ipt>\n<script id=\"app\">" + js + "</scr" + "ipt>\n</body>\n</html>\n";
+}
+
+const SI = "Sí", NO = "No";
+const RAMAS = ["Golondrinas","Lobatos","Guías","Scouts","Pioneras","Pioneros","Caminantes"];
+const ENFERMEDADES = ["Diabetes mellitus","Asma","Alteraciones sanguíneas","Hipertensión arterial","Tuberculosis","Enfermedad autoinmune","Patología cardiaca","Epilepsia","Hipo/Hipertiroidismo","Dolor de cabeza","Enfermedad renal","Otra"];
+const yes = k => d => d[k] === SI;
+
+const STEPS = [
+ {id:"participante", nav:"Participante", title:"Participante", intro:"Datos del niño, niña o joven que asistirá a la actividad.", cards:[
+  {title:"Datos personales", fields:[
+   {k:"p_nombre", l:"Nombre completo legal", t:"text", req:1, ac:"off"},
+   {k:"p_social", l:"Nombre social", t:"text", hint:"Solo si usa un nombre distinto al legal"},
+   {k:"p_run", l:"RUN", t:"run", req:1},
+   {k:"p_nac", l:"Fecha de nacimiento", t:"date", req:1},
+   {k:"p_nacionalidad", l:"Nacionalidad", t:"text", def:"Chilena", half:1},
+   {k:"p_genero", l:"Género", t:"select", opts:["Masculino","Femenino","Otro"], half:1},
+   {k:"p_estatura", l:"Estatura (m)", t:"num", step:"0.01", ph:"1,45", half:1},
+   {k:"p_peso", l:"Peso (kg)", t:"num", step:"0.1", ph:"40", half:1}
+  ]},
+  {title:"Grupo", fields:[
+   {k:"g_nombre", l:"Nombre del grupo", t:"text", lock:"grupo"},
+   {k:"g_rama", l:"Rama", t:"select", opts:RAMAS, lock:"rama"},
+   {k:"g_zona", l:"Zona", t:"text", half:1, lock:"zona"},
+   {k:"g_distrito", l:"Distrito", t:"text", half:1, lock:"distrito"}
+  ]}
+ ]},
+ {id:"apoderado", nav:"Apoderado", title:"Apoderado y contactos", intro:"Quién autoriza y a quién llamar si pasa algo.", cards:[
+  {title:"Apoderado/a o tutor/a legal", fields:[
+   {k:"a_nombre", l:"Nombre completo", t:"text", req:1, ac:"name"},
+   {k:"a_run", l:"RUN", t:"run", req:1},
+   {k:"a_tel", l:"Teléfono", t:"tel", req:1, ac:"tel"}
+  ]},
+  {title:"Contacto de emergencia 1", fields:[
+   {k:"c1_nombre", l:"Nombre", t:"text", req:1},
+   {k:"c1_rel", l:"Parentesco o relación", t:"text", req:1, half:1, ph:"Madre"},
+   {k:"c1_tel", l:"Teléfono", t:"tel", req:1, half:1}
+  ]},
+  {title:"Contacto de emergencia 2", fields:[
+   {k:"c2_nombre", l:"Nombre", t:"text"},
+   {k:"c2_rel", l:"Parentesco o relación", t:"text", half:1},
+   {k:"c2_tel", l:"Teléfono", t:"tel", half:1}
+  ]}
+ ]},
+ {id:"salud", nav:"Salud", title:"Salud", intro:"Responde Sí o No y se abrirán solo las preguntas que corresponden. Lo que dejes en blanco quedará como S/I (sin información) en el PDF.", cards:[
+  {title:"Previsión", fields:[
+   {k:"prev", l:"Previsión", t:"choice", opts:["Fonasa","Isapre","Otro"], req:1},
+   {k:"prev_cual", l:"¿Cuál?", t:"text", when:d=>d.prev==="Isapre"||d.prev==="Otro"},
+   {k:"seguro", l:"¿Tiene seguro complementario de salud o escolar?", t:"yesno", hint:"Si tiene, adjunta la documentación"},
+   {k:"seguro_inst", l:"Institución o convenio", t:"text", when:yes("seguro")}
+  ]},
+  {title:"Antecedentes médicos", fields:[
+   {k:"sangre", l:"Grupo sanguíneo y factor Rh", t:"select", opts:["A+","A-","B+","B-","AB+","AB-","O+","O-","No lo sé"]},
+   {k:"alergias", l:"¿Tiene alergias?", t:"yesno", req:1},
+   {k:"alergias_det", l:"¿A qué?", t:"textarea", req:1, hint:"Medicamentos, alimentos, picaduras, plantas, látex, yodo, anestésicos, etc.", when:yes("alergias")},
+   {k:"intol", l:"¿Tiene intolerancia alimentaria?", t:"yesno", req:1},
+   {k:"intol_det", l:"¿Cuál?", t:"text", req:1, when:yes("intol")},
+   {k:"enf", l:"Enfermedades crónicas o importantes", t:"checks", opts:ENFERMEDADES, hint:"Marca todas las que correspondan"},
+   {k:"enf_det", l:"Especifique", t:"textarea", hint:"Detalla las marcadas (y cuál es “Otra”, si la marcaste)", when:d=>(d.enf||[]).length>0},
+   {k:"enf_med", l:"Medicamentos, dosis y horarios", t:"textarea", when:d=>(d.enf||[]).length>0}
+  ]},
+  {title:"Historial clínico", fields:[
+   {k:"hosp", l:"¿Ha tenido hospitalizaciones?", t:"yesno"},
+   {k:"hosp_motivo", l:"Motivo", t:"text", when:yes("hosp")},
+   {k:"hosp_fecha", l:"Fecha aproximada", t:"text", ph:"mes / año", when:yes("hosp")},
+   {k:"cir", l:"¿Ha tenido cirugías?", t:"yesno"},
+   {k:"cir_cual", l:"¿Cuál?", t:"text", when:yes("cir")},
+   {k:"cir_fecha", l:"Fecha aproximada", t:"text", ph:"mes / año", when:yes("cir")}
+  ]},
+  {title:"Condiciones recientes", fields:[
+   {k:"mal", l:"¿Ha tenido malestares en las últimas 2 semanas (dolor, fiebre, etc.)?", t:"yesno", req:1},
+   {k:"mal_det", l:"Especifique", t:"textarea", when:yes("mal")},
+   {k:"trat", l:"¿Está en tratamiento actualmente?", t:"yesno"},
+   {k:"trat_inicio", l:"Fecha de inicio", t:"text", ph:"dd / mm / aaaa", when:yes("trat")},
+   {k:"trat_med", l:"Medicamentos, dosis y horarios", t:"textarea", when:yes("trat")}
+  ]},
+  {title:"Enfermedades infectocontagiosas y viajes", fields:[
+   {k:"infec", l:"¿Ha estado expuesto recientemente a enfermedades infectocontagiosas?", t:"yesno"},
+   {k:"infec_det", l:"Especifique", t:"text", when:yes("infec")},
+   {k:"viaje", l:"¿Ha viajado al extranjero el último año?", t:"yesno"},
+   {k:"viaje_pais", l:"País que visitó", t:"text", when:yes("viaje")},
+   {k:"viaje_fecha", l:"Fecha del viaje", t:"text", half:1, when:yes("viaje")},
+   {k:"viaje_vac", l:"Vacuna para el viaje", t:"text", half:1, when:yes("viaje")}
+  ]},
+  {title:"Vacunas", fields:[
+   {k:"pni", l:"¿Tiene las vacunas del Plan Nacional de Inmunización al día?", t:"yesno"},
+   {k:"otravac", l:"¿Ha recibido otra vacuna?", t:"yesno", hint:"Ej.: refuerzo antitetánica, antirrábica, fiebre amarilla"},
+   {k:"otravac_det", l:"¿Cuál?", t:"text", when:yes("otravac")}
+  ]},
+  {title:"Información gineco-obstétrica", fields:[
+   {k:"gin", l:"¿Esta sección aplica?", t:"yesno"},
+   {k:"gin_mens", l:"¿Tiene menstruaciones?", t:"yesno", when:yes("gin")},
+   {k:"gin_ciclo", l:"Sus ciclos son", t:"choice", opts:["Regulares","Irregulares"], when:d=>d.gin===SI&&d.gin_mens===SI},
+   {k:"gin_dism", l:"¿Sufre de dismenorrea (cólicos o dolores)?", t:"yesno", when:d=>d.gin===SI&&d.gin_mens===SI},
+   {k:"gin_med", l:"Medicamento para cólicos", t:"text", when:d=>d.gin===SI&&d.gin_dism===SI},
+   {k:"gin_antic", l:"Método anticonceptivo (nombre)", t:"text", when:yes("gin")},
+   {k:"gin_emb", l:"¿Está cursando un embarazo?", t:"yesno", when:yes("gin")},
+   {k:"gin_sem", l:"Semanas de embarazo", t:"text", half:1, when:d=>d.gin===SI&&d.gin_emb===SI},
+   {k:"gin_ctrl", l:"Fecha último control", t:"text", half:1, when:d=>d.gin===SI&&d.gin_emb===SI}
+  ]},
+  {title:"Antecedentes dentales", fields:[
+   {k:"dent_fecha", l:"Fecha del último control dental", t:"text", ph:"mes / año"},
+   {k:"dent_trat", l:"¿Tratamiento dental en curso?", t:"yesno"},
+   {k:"dent_det", l:"Especifique", t:"text", when:yes("dent_trat")}
+  ]},
+  {title:"Necesidades y restricciones especiales", fields:[
+   {k:"necesidades", l:"Médicas, alimentarias, neurodivergencias, religiosas, ayudas técnicas, etc.", t:"textarea"}
+  ]}
+ ]},
+ {id:"emocional", nav:"Bienestar", title:"Salud mental y regulación emocional", intro:"Esta información es confidencial y nos ayuda a acompañar y prevenir situaciones que puedan generar una desregulación.", cards:[
+  {title:"Antecedentes de salud mental", fields:[
+   {k:"sm_diag", l:"¿Tiene diagnóstico de salud mental?", t:"yesno", req:1},
+   {k:"sm_det", l:"Especifique", t:"text", when:yes("sm_diag")},
+   {k:"sm_trat", l:"¿Está en tratamiento actualmente?", t:"yesno", when:yes("sm_diag")},
+   {k:"sm_med", l:"Medicamentos, dosis y horarios", t:"textarea", when:d=>d.sm_diag===SI&&d.sm_trat===SI},
+   {k:"sm_prof", l:"Profesional tratante y contacto", t:"text", when:d=>d.sm_diag===SI&&d.sm_trat===SI}
+  ]},
+  {title:"Necesidades de regulación emocional", fields:[
+   {k:"re_diag", l:"¿Presenta un diagnóstico o características relevantes?", t:"yesno"},
+   {k:"re_cuales", l:"¿Cuáles?", t:"text", when:yes("re_diag")},
+   {k:"re_intereses", l:"¿Qué intereses o experiencias le generan disfrute?", t:"textarea"},
+   {k:"re_estres", l:"¿Qué situaciones le generan estrés o gatillan desregulaciones? ¿Qué conductas muestra antes, cuando está ansioso/a o nervioso/a?", t:"textarea"},
+   {k:"re_nec", l:"Necesidades específicas", t:"checks", opts:["Apoyo en comunicación","Dificultades sensoriales","Ayuda en organización o planificación","Otras"]},
+   {k:"re_nec_com", l:"Apoyo en comunicación: especifique", t:"text", hint:"Ej.: lenguaje no verbal, pictogramas", when:d=>(d.re_nec||[]).includes("Apoyo en comunicación")},
+   {k:"re_nec_sen", l:"Dificultades sensoriales: especifique", t:"text", hint:"Ej.: luces, ruidos, texturas", when:d=>(d.re_nec||[]).includes("Dificultades sensoriales")},
+   {k:"re_nec_org", l:"Organización o planificación: especifique", t:"text", hint:"Ej.: rutinas visuales, recordatorios", when:d=>(d.re_nec||[]).includes("Ayuda en organización o planificación")},
+   {k:"re_nec_otr", l:"Otras: especifique", t:"text", when:d=>(d.re_nec||[]).includes("Otras")},
+   {k:"re_estrategias", l:"¿Qué estrategias funcionan en casa o en el colegio para que vuelva a la calma?", t:"textarea", hint:"Qué apoyos le dan, con quién logra calmarse, qué herramientas usa"},
+   {k:"re_obs", l:"Observaciones adicionales", t:"textarea"}
+  ]}
+ ]},
+ {id:"firma", nav:"Firma", title:"Autorización y firma", intro:"Revisa y firma. Con esto se genera un solo PDF con la autorización y la ficha médica.", cards:[
+  {title:"Autorizaciones", fields:[
+   {k:"aut_med", l:"¿Autoriza a quien es responsable de la actividad para que, en caso de urgencia y bajo recomendación de un profesional médico, disponga el tratamiento o las intervenciones quirúrgicas que fueran necesarias?", t:"choice", opts:["Sí","No"], req:1},
+   {k:"decl48", l:"Declaro que en las últimas 48 horas no ha presentado signos o síntomas compatibles con enfermedades infecciosas ni condiciones de salud que pongan en riesgo su bienestar o el de los demás, y que no conozco ninguna condición médica que le impida participar de forma segura.", t:"check", req:1},
+   {k:"resp", l:"Entiendo y acepto que la organización y la Asociación de Guías y Scouts de Chile no serán responsables por complicaciones de salud derivadas de condiciones preexistentes o no informadas, siempre que no tengan relación directa con accidentes en la actividad.", t:"check", req:1},
+   {k:"veraz", l:"Doy fe de que la información de la ficha corresponde a la realidad y autorizo a la Asociación y a las personas responsables a tratar estos datos exclusivamente para la gestión de la actividad, la atención de emergencias, la protección de la persona participante y obligaciones legales, incluida su comunicación a prestadores de salud, servicios de emergencia y autoridades competentes si fuera necesario.", t:"check", req:1}
+  ]},
+  {title:"Firma del apoderado/a", fields:[
+   {k:"firma", l:"Firma con el dedo dentro del recuadro", t:"sign", req:1}
+  ]}
+ ]}
+];
+
+/* ===== Estado ===== */
+const KEY = "agsch-autorizacion-borrador-v1";
+let data = {};
+try { data = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch(e){ data = {}; }
+let sigData = null;
+let cur = 0, maxReached = 0;
+const ALL = STEPS.flatMap(s => s.cards.flatMap(c => c.fields.map(f => ({...f, step:s.id}))));
+ALL.forEach(f => { if (data[f.k] === undefined && f.def) data[f.k] = f.def; });
+const locked = f => !!f.lock;
+ALL.forEach(f => { if (locked(f)) data[f.k] = ACTIVIDAD[f.lock]; });
+{ const actKey = ACTIVIDAD.nombre + "|" + ACTIVIDAD.fechas;
+  if (data._act && data._act !== actKey){ ["aut_med","decl48","resp","veraz"].forEach(k => delete data[k]); }
+  data._act = actKey; }
+
+/* ===== RUN ===== */
+function runClean(r){ return String(r||"").replace(/[^0-9kK]/g,"").toUpperCase(); }
+function runValid(r){
+  r = runClean(r); if (r.length < 2) return false;
+  const body = r.slice(0,-1), dv = r.slice(-1);
+  if (!/^\d+$/.test(body)) return false;
+  let s = 0, m = 2;
+  for (let i = body.length-1; i >= 0; i--){ s += +body[i]*m; m = m === 7 ? 2 : m+1; }
+  const x = 11 - (s % 11);
+  return (x === 11 ? "0" : x === 10 ? "K" : String(x)) === dv;
+}
+function runFormat(r){
+  r = runClean(r); if (r.length < 2) return r;
+  const body = r.slice(0,-1).replace(/\B(?=(\d{3})+(?!\d))/g,".");
+  return body + "-" + r.slice(-1);
+}
+
+/* ===== Utilidades ===== */
+const $ = (s, el=document) => el.querySelector(s);
+function el(tag, attrs={}, kids=[]){
+  const e = document.createElement(tag);
+  for (const [k,v] of Object.entries(attrs)){
+    if (v === undefined || v === null || v === false) continue;
+    if (k === "class") e.className = v; else if (k === "text") e.textContent = v; else e.setAttribute(k, v === true ? "" : v);
+  }
+  (Array.isArray(kids)?kids:[kids]).forEach(c => c && e.append(c));
+  return e;
+}
+function shown(f){ return !f.when || f.when(data); }
+function age(iso){
+  if (!iso) return "";
+  const b = new Date(iso+"T12:00:00"), n = new Date();
+  let a = n.getFullYear()-b.getFullYear();
+  if (n.getMonth()<b.getMonth() || (n.getMonth()===b.getMonth() && n.getDate()<b.getDate())) a--;
+  return a >= 0 && a < 120 ? a : "";
+}
+function fmtDate(iso){ if(!iso) return ""; const [y,m,d] = iso.split("-"); return `${d}/${m}/${y}`; }
+let saveT;
+function save(){
+  clearTimeout(saveT);
+  saveT = setTimeout(() => { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch(e){} }, 300);
+}
+
+/* ===== Render ===== */
+function renderField(f){
+  const id = "f_"+f.k;
+  const wrap = el("div", {class:"f"+(f.half?" half":"")+(f.t==="check"?" single":""), "data-k":f.k});
+  const lblCls = f.req ? "req" : "";
+  const hint = locked(f) ? el("span",{class:"hint",text: ACTIVIDAD[f.lock] ? "Definido por la dirigencia" : "Lo completa la dirigencia"}) : f.hint ? el("span",{class:"hint",text:f.hint}) : "";
+  const onChange = () => { refresh(); save(); };
+
+  if (["text","tel","num","date","run"].includes(f.t)){
+    wrap.append(el("label",{for:id,class:lblCls,text:f.l}), hint);
+    const inp = el("input",{id, name:f.k,
+      type: f.t==="num" ? "text" : f.t==="run" ? "text" : f.t,
+      inputmode: f.t==="num" ? "decimal" : f.t==="run" ? "text" : undefined,
+      autocomplete: f.ac || (f.t==="tel" ? "tel" : "off"),
+      placeholder: f.ph || (f.t==="run" ? "12.345.678-9" : undefined),
+      autocapitalize: f.t==="run" ? "characters" : undefined, disabled: locked(f)});
+    inp.value = data[f.k] || "";
+    inp.addEventListener("input", () => { data[f.k] = inp.value; wrap.classList.remove("err"); onChange(); });
+    if (f.t==="run") inp.addEventListener("blur", () => { if (inp.value){ inp.value = runFormat(inp.value); data[f.k]=inp.value; save(); } });
+    wrap.append(inp);
+    if (f.t==="date"){ const c = el("div",{class:"calc"}); wrap.append(c); wrap._calc = c; }
+  } else if (f.t==="textarea"){
+    wrap.append(el("label",{for:id,class:lblCls,text:f.l}), hint);
+    const ta = el("textarea",{id,name:f.k}); ta.value = data[f.k]||"";
+    ta.addEventListener("input", () => { data[f.k]=ta.value; wrap.classList.remove("err"); onChange(); });
+    wrap.append(ta);
+  } else if (f.t==="select"){
+    wrap.append(el("label",{for:id,class:lblCls,text:f.l}), hint);
+    const s = el("select",{id,name:f.k,disabled:locked(f)},[el("option",{value:"",text:"Selecciona…"}), ...f.opts.map(o=>el("option",{value:o,text:o}))]);
+    s.value = data[f.k]||"";
+    s.addEventListener("change", () => { data[f.k]=s.value; wrap.classList.remove("err"); onChange(); });
+    wrap.append(s);
+  } else if (f.t==="yesno" || f.t==="choice"){
+    const opts = f.t==="yesno" ? [SI,NO] : f.opts;
+    const fs = el("div",{class:"q "+lblCls,id:id+"_q",text:f.l});
+    const seg = el("div",{class:"seg",role:"radiogroup","aria-labelledby":id+"_q"});
+    opts.forEach(o => {
+      const r = el("input",{type:"radio",name:f.k,value:o});
+      r.checked = data[f.k]===o;
+      r.addEventListener("change", () => { data[f.k]=o; wrap.classList.remove("err"); onChange(); });
+      seg.append(el("label",{},[r, el("span",{text:o})]));
+    });
+    wrap.append(fs, hint, seg);
+  } else if (f.t==="checks"){
+    const q = el("div",{class:"q "+lblCls,text:f.l});
+    const box = el("div",{class:"checks"});
+    f.opts.forEach(o => {
+      const c = el("input",{type:"checkbox",value:o});
+      c.checked = (data[f.k]||[]).includes(o);
+      c.addEventListener("change", () => {
+        const set = new Set(data[f.k]||[]); c.checked ? set.add(o) : set.delete(o);
+        data[f.k] = f.opts.filter(x=>set.has(x)); onChange();
+      });
+      box.append(el("label",{class:"ck"},[c, el("span",{text:o})]));
+    });
+    wrap.append(q, hint, box);
+  } else if (f.t==="check"){
+    const c = el("input",{type:"checkbox",name:f.k}); c.checked = !!data[f.k];
+    c.addEventListener("change", () => { data[f.k]=c.checked; wrap.classList.remove("err"); onChange(); });
+    wrap.append(el("label",{class:"ck long"},[c, el("span",{text:f.l})]));
+  } else if (f.t==="sign"){
+    wrap.append(el("div",{class:"q "+lblCls,text:f.l}));
+    const box = el("div",{class:"sig"});
+    const cv = el("canvas",{"aria-label":"Área de firma"});
+    box.append(cv, el("div",{class:"line"}), el("div",{class:"ph",text:"Firma aquí"}));
+    const clr = el("button",{type:"button",class:"linkbtn",text:"Borrar firma"});
+    wrap.append(box, clr);
+    setupSignature(cv, box, clr, wrap);
+  }
+  wrap.append(el("div",{class:"msg"}));
+  return wrap;
+}
+
+function setupSignature(cv, box, clr, wrap){
+  let ctx, drawing = false, last = null, has = false;
+  function size(){
+    const r = cv.getBoundingClientRect(); if (!r.width) return;
+    const dpr = Math.max(1, window.devicePixelRatio||1);
+    const prev = has ? cv.toDataURL() : null;
+    cv.width = r.width*dpr; cv.height = r.height*dpr;
+    ctx = cv.getContext("2d"); ctx.scale(dpr,dpr);
+    ctx.lineWidth = 2.4; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = "#0E2A6B";
+    if (prev){ const im = new Image(); im.onload = () => ctx.drawImage(im,0,0,r.width,r.height); im.src = prev; }
+  }
+  cv._size = size;
+  const pos = e => { const r = cv.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; };
+  cv.addEventListener("pointerdown", e => { if(!ctx) size(); drawing = true; last = pos(e); cv.setPointerCapture(e.pointerId); e.preventDefault(); });
+  cv.addEventListener("pointermove", e => {
+    if (!drawing) return; const p = pos(e);
+    ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(p.x,p.y); ctx.stroke(); last = p;
+    if (!has){ has = true; box.querySelector(".ph").style.display="none"; wrap.classList.remove("err"); }
+  });
+  const end = () => { if (drawing){ drawing = false; if (has) sigData = cv.toDataURL("image/png"); } };
+  cv.addEventListener("pointerup", end); cv.addEventListener("pointercancel", end);
+  clr.addEventListener("click", () => { if(!ctx) size(); const r = cv.getBoundingClientRect(); ctx.clearRect(0,0,r.width,r.height); has=false; sigData=null; box.querySelector(".ph").style.display=""; });
+  window.addEventListener("resize", () => { if (cv.offsetParent) size(); });
+}
+
+function build(){
+  $("#actNombre").textContent = ACTIVIDAD.nombre;
+  $("#actFecha").textContent = ACTIVIDAD.fechas;
+  $("#actLugar").textContent = ACTIVIDAD.lugar;
+  const list = $("#stepList"), form = $("#form");
+  STEPS.forEach((s,i) => {
+    const b = el("button",{type:"button","data-i":i},[el("span",{class:"bar"}), el("span",{class:"lbl",text:s.nav})]);
+    b.addEventListener("click", () => { if (i <= maxReached) go(i); });
+    list.append(el("li",{},b));
+    const sec = el("section",{class:"step",id:"s_"+s.id},[el("h2",{text:s.title}), el("p",{class:"intro",text:s.intro})]);
+    s.cards.forEach(c => {
+      const card = el("div",{class:"card"},[el("h3",{text:c.title})]);
+      const g = el("div",{class:"grid"}); c.fields.forEach(f => g.append(renderField(f)));
+      card.append(g); sec.append(card);
+    });
+    if (s.id==="firma"){
+      sec.append(el("p",{class:"legal",text:"Los datos se usan solo en tu teléfono para armar el PDF: este formulario no los envía a ningún servidor. Mientras completas, se guarda un borrador en este equipo para que no pierdas lo escrito."}));
+      const clr = el("button",{type:"button",class:"linkbtn",text:"Borrar todos los datos de este teléfono"});
+      clr.addEventListener("click", () => { if (confirm("¿Borrar todo lo que escribiste en este formulario?")){ try{localStorage.removeItem(KEY);}catch(e){} location.reload(); } });
+      sec.append(clr);
+    }
+    form.append(sec);
+  });
+  $("#prevBtn").addEventListener("click", () => go(cur-1));
+  $("#nextBtn").addEventListener("click", next);
+  refresh(); go(0, true);
+}
+
+function refresh(){
+  document.querySelectorAll(".f[data-k]").forEach(w => {
+    const f = ALL.find(x => x.k === w.dataset.k);
+    w.hidden = !shown(f);
+    if (w._calc){ const a = age(data[f.k]); w._calc.textContent = a !== "" ? `Edad: ${a} años` : ""; }
+  });
+}
+
+function go(i, silent){
+  if (i < 0 || i >= STEPS.length) return;
+  cur = i; maxReached = Math.max(maxReached, i);
+  document.querySelectorAll("section.step").forEach((s,k) => s.classList.toggle("on", k===i));
+  document.querySelectorAll("#stepList button").forEach((b,k) => {
+    b.parentElement.className = k<i ? "done" : k===i ? "now" : "";
+    b.disabled = k > maxReached;
+    if (k===i) b.setAttribute("aria-current","step"); else b.removeAttribute("aria-current");
+  });
+  $("#prevBtn").style.visibility = i===0 ? "hidden" : "visible";
+  $("#nextBtn").textContent = i===STEPS.length-1 ? "Generar PDF" : "Siguiente";
+  if (STEPS[i].id==="firma") requestAnimationFrame(() => { const cv = $("#s_firma canvas"); cv && cv._size && cv._size(); });
+  if (!silent) window.scrollTo({top:0});
+}
+
+function validate(stepIdx){
+  const s = STEPS[stepIdx]; let first = null;
+  s.cards.forEach(c => c.fields.forEach(f => {
+    const w = document.querySelector(`.f[data-k="${f.k}"]`); if (!w || w.hidden) return;
+    let msg = "";
+    const v = data[f.k];
+    if (f.t==="sign"){ if (f.req && !sigData) msg = "Falta la firma."; }
+    else if (f.t==="check"){ if (f.req && !v) msg = "Debes marcar esta casilla para continuar."; }
+    else if (f.req && (v===undefined || v===null || String(v).trim()==="" || (Array.isArray(v)&&!v.length))) msg = "Este dato es obligatorio.";
+    if (!msg && f.t==="run" && v && !runValid(v)) msg = "El RUN no es válido. Revisa el dígito verificador.";
+    if (!msg && f.t==="date" && v && age(v)==="") msg = "Revisa la fecha.";
+    w.classList.toggle("err", !!msg); w.querySelector(".msg").textContent = msg;
+    if (msg && !first) first = w;
+  }));
+  if (first){ first.scrollIntoView({block:"center"}); const i = first.querySelector("input,select,textarea"); i && i.focus({preventScroll:true}); return false; }
+  return true;
+}
+
+async function next(){
+  if (!validate(cur)) return;
+  if (cur < STEPS.length-1) return go(cur+1);
+  for (let i=0;i<STEPS.length;i++){ if (!validate(i)){ go(i); validate(i); return; } }
+  const btn = $("#nextBtn"); btn.disabled = true; btn.textContent = "Generando…";
+  try {
+    const {blob, name} = buildPDF();
+    const res = await deliver(blob, name);
+    const box = $("#doneBox"), msg = $("#doneMsg");
+    if (res === "declined"){ msg.textContent = "No se guardó el archivo. Puedes intentarlo de nuevo con el botón Generar PDF."; }
+    else msg.textContent = `Se creó el archivo ${name}.`;
+    box.classList.add("on"); box.scrollIntoView({block:"center"});
+  } catch(e){
+    console.error(e); alert("No se pudo generar el PDF. Revisa tu conexión a internet y vuelve a intentarlo.");
+  } finally { btn.disabled = false; btn.textContent = "Generar PDF"; }
+}
+
+/* ===== Entrega del archivo ===== */
+const downloadsP = (window.claude && typeof window.claude.use === "function") ? window.claude.use("downloads").catch(()=>null) : Promise.resolve(null);
+async function deliver(blob, filename){
+  const dl = await Promise.race([downloadsP, new Promise(r=>setTimeout(()=>r(null),1500))]);
+  if (dl){
+    try { await dl.save({filename, data:blob}); return "saved"; }
+    catch(e){ if (e && e.code==="declined") return "declined"; }
+  }
+  try {
+    const file = new File([blob], filename, {type:"application/pdf"});
+    if (navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], title:"Autorización y ficha médica"}); return "shared";
+    }
+  } catch(e){ if (e && e.name==="AbortError") return "declined"; }
+  const url = URL.createObjectURL(blob);
+  const a = el("a",{href:url,download:filename}); document.body.append(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 60000);
+  return "link";
+}
+
+/* ===== PDF ===== */
+function val(k){
+  const f = ALL.find(x=>x.k===k);
+  if (f && !shown(f)) return "N/A";
+  const v = data[k];
+  if (Array.isArray(v)) return v.length ? v.join(", ") : "Ninguna";
+  if (v===undefined || v===null || String(v).trim()==="") return "S/I";
+  if (f && f.t==="date") return fmtDate(v);
+  return String(v).trim();
+}
+
+function buildPDF(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:"mm", format:"letter"});
+  const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), M = 16;
+  const GREEN = [36,90,65];
+  let y = M;
+  const ensure = h => { if (y + h > H - 14){ doc.addPage(); y = M; } };
+  const title = (t, sub) => {
+    doc.setFont("helvetica","bold"); doc.setFontSize(14); doc.setTextColor(20);
+    doc.text(t, W/2, y, {align:"center"}); y += 6;
+    if (sub){ doc.setFontSize(11); doc.text(sub, W/2, y, {align:"center"}); y += 6; }
+    y += 2;
+  };
+  const para = (t, size=9.5, bold=false) => {
+    doc.setFont("helvetica", bold?"bold":"normal"); doc.setFontSize(size); doc.setTextColor(25);
+    const lines = doc.splitTextToSize(t, W-2*M), lh = size*0.43;
+    ensure(lines.length*lh); doc.text(lines, M, y); y += lines.length*lh + 3;
+  };
+  const table = (head, rows, opts={}) => {
+    ensure(head ? 26 : 14);
+    doc.autoTable(Object.assign({
+      startY:y, margin:{left:M,right:M}, theme:"grid",
+      head: head ? [[{content:head, colSpan: opts.cols||2}]] : undefined,
+      body: rows,
+      styles:{font:"helvetica", fontSize:8.6, cellPadding:1.8, textColor:20, lineColor:[160,170,162], lineWidth:0.2, valign:"top", overflow:"linebreak"},
+      headStyles:{fillColor:GREEN, textColor:255, fontStyle:"bold", fontSize:9},
+      columnStyles:{0:{fontStyle:"bold", fillColor:[236,242,237], cellWidth:62}},
+      pageBreak:"auto", rowPageBreak:"avoid"
+    }, opts.extra||{}));
+    y = doc.lastAutoTable.finalY + 4;
+  };
+  const sigBlock = (leftLabel, leftName, rightLabel, rightName, withSig) => {
+    ensure(42);
+    const colW = (W-2*M-10)/2, x2 = M+colW+10, base = y+26;
+    if (withSig && sigData) doc.addImage(sigData, "PNG", x2+4, y, colW-8, 24);
+    doc.setDrawColor(60); doc.setLineWidth(0.3);
+    doc.line(M, base, M+colW, base); doc.line(x2, base, x2+colW, base);
+    doc.setFont("helvetica","normal"); doc.setFontSize(8.6); doc.setTextColor(25);
+    doc.text(doc.splitTextToSize(leftName, colW), M, base+4);
+    doc.text(doc.splitTextToSize(rightName, colW), x2, base+4);
+    doc.setFont("helvetica","bold");
+    doc.text(leftLabel, M, base+12); doc.text(rightLabel, x2, base+12);
+    y = base + 18;
+  };
+
+  const hoy = new Date();
+  const hoyTxt = hoy.toLocaleDateString("es-CL",{day:"numeric",month:"long",year:"numeric"});
+  const hoyNum = `${String(hoy.getDate()).padStart(2,"0")}/${String(hoy.getMonth()+1).padStart(2,"0")}/${hoy.getFullYear()}`;
+  const d = k => val(k);
+
+  /* --- Documento 1: Autorización --- */
+  title("AUTORIZACIÓN DE PARTICIPACIÓN EN ACTIVIDADES PRESENCIALES", "MENORES DE EDAD");
+  para(`Con fecha ${hoyTxt}, yo ${d("a_nombre")}, RUN ${d("a_run")}, apoderada, apoderado, tutora o tutor legal de ${d("p_nombre")}, RUN ${d("p_run")}, autorizo para que participe en la actividad: ${ACTIVIDAD.nombre}, la que se efectuará durante el/los día/s ${ACTIVIDAD.fechas}, a realizarse en el lugar denominado ${ACTIVIDAD.lugar}.`, 10);
+  para("Al firmar esta autorización, declaro que el niño, niña o adolescente que represento no ha presentado en las últimas 48 horas signos o síntomas compatibles con enfermedades infecciosas o condiciones de salud que pudieran poner en riesgo su bienestar o el de los demás durante la realización de la actividad. Asimismo, manifiesto que no tengo conocimiento de que se encuentre cursando alguna condición médica que le impida participar de manera segura.");
+  para("Entiendo y acepto que la organización de la actividad y/o la Asociación de Guías y Scouts de Chile no será responsable por eventuales complicaciones de salud que pudieran derivarse de condiciones preexistentes y/o no informadas, siempre que estas no tengan relación directa con accidentes en la actividad desarrollada.");
+  table(null, [[{content:`Autorizo: ${data.aut_med==="Sí"?"SÍ":"NO"}`, styles:{halign:"center",fontStyle:"bold",fontSize:11}}, "A quien es responsable de la actividad para que, en caso de urgencia y bajo recomendación de un profesional médico, disponga el tratamiento o intervenciones quirúrgicas que fueran necesarias realizar al niño, niña o adolescente que represento."]], {extra:{columnStyles:{0:{cellWidth:32, fillColor:[236,242,237]}}}});
+  para("En cualquier caso de urgencia, comunicarse con:", 9.5, true);
+  doc.autoTable({startY:y, margin:{left:M,right:M}, theme:"grid",
+    head:[["Nombre completo","Parentesco/Relación","Teléfono"]],
+    body:[[d("c1_nombre"),d("c1_rel"),d("c1_tel")],[val("c2_nombre"),val("c2_rel"),val("c2_tel")]],
+    styles:{fontSize:9,cellPadding:2,lineColor:[160,170,162],lineWidth:0.2,textColor:20}, headStyles:{fillColor:GREEN,textColor:255}});
+  y = doc.lastAutoTable.finalY + 8;
+  sigBlock("Nombre completo y RUN", `${d("a_nombre")}\nRUN ${d("a_run")}`, "Firma apoderado/a o tutor/a legal", "", true);
+  para("Este documento debe conservarse por un período mínimo de 6 meses después de finalizado el evento o salida, en caso de ser necesarias consultas posteriores. Se recomienda su digitalización y almacenamiento seguro.", 8);
+
+  /* --- Documento 2: Ficha médica --- */
+  doc.addPage(); y = M;
+  title("FICHA MÉDICA Y NECESIDADES EMOCIONALES");
+  para("S/I: sin información. N/A: no aplica.", 8);
+  table("DATOS PERSONALES", [
+    ["Nombre completo", d("p_nombre")], ["Nombre social", d("p_social")],
+    ["Fecha de nacimiento", d("p_nac")], ["Edad (en años)", String(age(data.p_nac)||"S/I")],
+    ["RUN", d("p_run")], ["Nacionalidad", d("p_nacionalidad")], ["Género", d("p_genero")],
+    ["Estatura (m)", d("p_estatura")], ["Peso (kg)", d("p_peso")]
+  ]);
+  table("DATOS DE GRUPO", [["Nombre de grupo", d("g_nombre")], ["Rama", d("g_rama")], ["Zona", d("g_zona")], ["Distrito", d("g_distrito")]]);
+  table("CONTACTOS DE EMERGENCIA", [
+    ["Contacto 1", `${d("c1_nombre")} (${d("c1_rel")}) · ${d("c1_tel")}`],
+    ["Contacto 2", data.c2_nombre ? `${val("c2_nombre")} (${val("c2_rel")}) · ${val("c2_tel")}` : "S/I"]
+  ]);
+  table("DATOS PREVISIONALES", [
+    ["Previsión", d("prev") + (shown(ALL.find(f=>f.k==="prev_cual")) ? ` – ${d("prev_cual")}` : "")],
+    ["Seguro complementario de salud o escolar", d("seguro")], ["Institución convenio", d("seguro_inst")]
+  ]);
+  table("ANTECEDENTES MÉDICOS", [
+    ["Grupo sanguíneo y factor Rh", d("sangre")],
+    ["Alergias", d("alergias")], ["Especifique alergias", d("alergias_det")],
+    ["Intolerancia alimentaria", d("intol")], ["Especifique", d("intol_det")]
+  ]);
+  table("ENFERMEDADES CRÓNICAS O IMPORTANTES", [
+    ["Marcadas", d("enf")], ["Especifique", d("enf_det")], ["Medicamentos, dosis y horarios", d("enf_med")]
+  ]);
+  table("ANTECEDENTES DE SALUD MENTAL", [
+    ["¿Diagnóstico de salud mental?", d("sm_diag")], ["Especifique", d("sm_det")],
+    ["¿Está en tratamiento actualmente?", d("sm_trat")], ["Medicamentos, dosis y horarios", d("sm_med")],
+    ["Profesional tratante y contacto", d("sm_prof")]
+  ]);
+  table("HISTORIAL CLÍNICO", [
+    ["Hospitalizaciones previas", d("hosp")], ["Motivo / fecha", `${d("hosp_motivo")} / ${d("hosp_fecha")}`],
+    ["Cirugías previas", d("cir")], ["Cuál / fecha", `${d("cir_cual")} / ${d("cir_fecha")}`]
+  ]);
+  table("CONDICIONES RECIENTES", [
+    ["Malestares en las últimas 2 semanas", d("mal")], ["Especifique", d("mal_det")],
+    ["Está en tratamiento actualmente", d("trat")], ["Fecha de inicio", d("trat_inicio")],
+    ["Medicamentos, dosis y horarios", d("trat_med")]
+  ]);
+  table("CONTACTO RECIENTE CON ENFERMEDADES INFECTOCONTAGIOSAS", [
+    ["Exposición reciente", d("infec")], ["Especifique", d("infec_det")],
+    ["¿Viajó al extranjero el último año?", d("viaje")], ["País que visitó", d("viaje_pais")],
+    ["Fecha del viaje", d("viaje_fecha")], ["Vacuna para el viaje", d("viaje_vac")]
+  ]);
+  table("ANTECEDENTES DE VACUNAS", [
+    ["Plan Nacional de Inmunización al día", d("pni")], ["¿Otra vacuna?", d("otravac")], ["Especifique", d("otravac_det")]
+  ]);
+  table("INFORMACIÓN GINECO-OBSTÉTRICA (si aplica)", data.gin===SI ? [
+    ["¿Tiene menstruaciones?", d("gin_mens")], ["Ciclos", d("gin_ciclo")], ["Dismenorrea", d("gin_dism")],
+    ["Medicamento para cólicos", d("gin_med")], ["Método anticonceptivo", d("gin_antic")],
+    ["¿Cursa un embarazo?", d("gin_emb")], ["Semanas de embarazo", d("gin_sem")], ["Fecha último control", d("gin_ctrl")]
+  ] : [["Sección", data.gin===NO ? "N/A" : "S/I"]]);
+  table("ANTECEDENTES DENTALES", [
+    ["Fecha del último control dental", d("dent_fecha")], ["¿Tratamiento dental en curso?", d("dent_trat")], ["Especifique", d("dent_det")]
+  ]);
+  table("NECESIDADES Y RESTRICCIONES ESPECIALES", [["Detalle", d("necesidades")]]);
+  para("IMPORTANTE: Debe adjuntar receta médica por tratamientos indicados en ficha. Llevar medicamentos, inhaladores, aerocámara, entre otros. Si está cursando un embarazo debe llevar carné de control.", 8.5, true);
+
+  ensure(30);
+  y += 2; title("REGISTRO DE NECESIDADES DE REGULACIÓN EMOCIONAL");
+  const nec = (data.re_nec||[]);
+  const necTxt = ["Apoyo en comunicación","Dificultades sensoriales","Ayuda en organización o planificación","Otras"].map((o,i) => {
+    const k = ["re_nec_com","re_nec_sen","re_nec_org","re_nec_otr"][i];
+    return nec.includes(o) ? `[X] ${o}: ${val(k)}` : `[  ] ${o}`;
+  }).join("\n");
+  table(null, [
+    ["1. ¿Presenta un diagnóstico o características relevantes?", `${d("re_diag")}${data.re_diag===SI?" – "+d("re_cuales"):""}`],
+    ["2. Intereses y experiencias que generan disfrute", d("re_intereses")],
+    ["3. Situaciones que generan estrés y conductas previas a una desregulación", d("re_estres")],
+    ["4. Necesidades específicas", necTxt],
+    ["5. Estrategias que funcionan para volver a la calma", d("re_estrategias")],
+    ["6. Observaciones adicionales", d("re_obs")]
+  ]);
+  para("[X] Doy fe que la información contenida en esta ficha corresponde a la realidad de la persona que se individualiza. Asimismo, autorizo a la Asociación de Guías y Scouts de Chile y a las personas responsables de la actividad a tratar y utilizar los datos personales y antecedentes de salud aquí consignados, exclusivamente para la gestión de la actividad, la atención de emergencias, la protección de la integridad de la persona participante y el cumplimiento de obligaciones legales. En caso de ser necesario, autorizo la comunicación de estos antecedentes a prestadores de salud, servicios de emergencia y autoridades competentes.", 8.5);
+  y += 2;
+  sigBlock("Nombre y firma dirigente/guiadora responsable", ACTIVIDAD.responsable || "", "Nombre y firma titular / tutor/a legal o apoderado/a", `${d("a_nombre")}\nTeléfono de contacto: ${d("a_tel")}`, true);
+  para(`FECHA DE LLENADO: ${hoyNum}`, 9.5, true);
+  para("Los datos personales y antecedentes de salud contenidos en esta ficha serán tratados de manera confidencial y utilizados únicamente para fines relacionados con la participación en actividades de la Asociación, la gestión de emergencias, la atención de salud y el cumplimiento de obligaciones legales. El acceso a esta información estará restringido a personas autorizadas o que la requieran para dichos fines.", 7.8);
+  para("Este documento debe conservarse por un período mínimo de 6 meses después de finalizado el evento o salida, en caso de ser necesarias consultas posteriores. Se recomienda su digitalización y almacenamiento seguro.", 7.8);
+
+  const n = doc.getNumberOfPages();
+  for (let i=1;i<=n;i++){
+    doc.setPage(i); doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(110);
+    doc.text(`${ACTIVIDAD.nombre} · ${data.p_nombre||""} · Guías y Scouts de Chile`, M, H-8);
+    doc.text(`Página ${i} de ${n}`, W-M, H-8, {align:"right"});
+  }
+  const safe = (data.p_nombre||"participante").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"");
+  return { blob: doc.output("blob"), name: `Autorizacion-y-Ficha-Medica-${safe}.pdf` };
+}
+
+build();
+
+/* ===== Edición de la salida (solo editores) ===== */
+async function setupEditor(){
+  if (!window.claude || typeof window.claude.use !== "function") return;
+  const [u, art] = await Promise.all([window.claude.use("user"), window.claude.use("artifact")]);
+  if (!u || !art) return;
+  let can = false; try { can = await u.canEdit(); } catch(e){}
+  if (!can) return;
+  const btn = $("#editBtn"), dlg = $("#editDlg"), err = $("#editErr"), save = $("#editSave");
+  const fields = {nombre:"#e_nombre", fechas:"#e_fechas", lugar:"#e_lugar", grupo:"#e_grupo", rama:"#e_rama", zona:"#e_zona", distrito:"#e_distrito", responsable:"#e_resp"};
+  const rs = $("#e_rama"); rs.append(el("option",{value:"",text:"Sin definir"}), ...RAMAS.map(o=>el("option",{value:o,text:o})));
+  btn.hidden = false;
+  const pubBtn = el("button",{type:"button",class:"edit",style:"margin-left:8px",text:"Descargar versión para publicar"});
+  btn.after(pubBtn);
+  pubBtn.addEventListener("click", async () => {
+    const dl = await downloadsP;
+    if (!dl){ alert("Esta vista no permite descargar archivos. Ábrelo desde claude.ai con tu cuenta."); return; }
+    try { await dl.save({filename:"index.html", data:new Blob([pageSource(ACTIVIDAD)],{type:"text/html"})}); }
+    catch(e){ if (!e || e.code !== "declined") alert("No se pudo descargar el archivo. Inténtalo de nuevo."); }
+  });
+  btn.addEventListener("click", () => {
+    for (const [k,s] of Object.entries(fields)) $(s).value = ACTIVIDAD[k] || "";
+    err.textContent = ""; dlg.showModal();
+  });
+  $("#editCancel").addEventListener("click", () => dlg.close());
+  save.addEventListener("click", async () => {
+    const act = {};
+    for (const [k,s] of Object.entries(fields)) act[k] = $(s).value.trim();
+    if (!act.nombre || !act.fechas || !act.lugar){ err.textContent = "Completa el nombre, la fecha y el lugar."; return; }
+    save.disabled = true; save.textContent = "Publicando…"; err.textContent = "";
+    try {
+      await art.publish(pageSource(act));
+      save.textContent = "Publicado";
+    } catch(e){
+      const c = e && e.code;
+      if (c === "conflict") { save.textContent = "Actualizando…"; return; }
+      if (c === "not_writer" || c === "not_granted" || c === "not_declared" || c === "capability_disabled" || c === "capability_removed" || c === "consent_required"){
+        err.textContent = "Esta vista es de solo lectura: no puedes cambiar los datos de la salida desde aquí."; btn.hidden = true;
+      } else if (c === "rate_limited"){ err.textContent = "Se guardó hace muy poco. Espera un momento e inténtalo de nuevo."; }
+      else { err.textContent = "No se pudo publicar el cambio. Inténtalo de nuevo."; }
+      save.disabled = false; save.textContent = "Guardar y publicar";
+    }
+  });
+}
+setupEditor();
+</script>
+</body>
+</html>
