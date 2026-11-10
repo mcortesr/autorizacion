@@ -735,7 +735,7 @@ async function buildPDF(){
   put("a1", dd, {center:1}); put("a2", mm, {center:1}); put("a3", yy, {center:1});
   put("a5", d("a_nombre"), {center:1}); put("a13", d("a_run"), {center:1});
   put("a19", d("p_nombre"), {center:1}); put("a21", d("p_run"), {center:1});
-  put("a26", ACTIVIDAD.nombre, {bold:1}); put("a30", ACTIVIDAD.fechas, {bold:1}); put("a34", ACTIVIDAD.lugar, {bold:1});
+  put("a26", ACTIVIDAD.nombre, {bold:1, center:1}); put("a30", ACTIVIDAD.fechas, {bold:1, center:1}); put("a34", ACTIVIDAD.lugar, {bold:1, center:1});
   put("a45", d("c1_nombre"), {center:1}); put("a46", d("c1_rel"), {center:1}); put("a47", d("c1_tel"), {center:1});
   put("a48", opt("c2_nombre"), {center:1}); put("a49", opt("c2_rel"), {center:1}); put("a50", opt("c2_tel"), {center:1});
   const drawLogo = async (v, dflt, box) => {
