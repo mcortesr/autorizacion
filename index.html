@@ -808,23 +808,46 @@ async function buildPDF(){
 build();
 
 /* ===== Edición de la salida (solo editores) ===== */
+let editorReady = false;
+/* Guarda la página como index.html: con el permiso de descargas dentro de Claude, o como descarga normal del navegador fuera de él */
+async function saveHtmlFile(html){
+  const blob = new Blob([html], {type:"text/html"});
+  const dl = await Promise.race([downloadsP, new Promise(r => setTimeout(() => r(null), 1500))]);
+  if (dl){
+    try { await dl.save({filename:"index.html", data:blob}); return "saved"; }
+    catch(e){ if (e && e.code === "declined") return "declined"; }
+  }
+  const url = URL.createObjectURL(blob);
+  const a = el("a",{href:url, download:"index.html"}); document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  return "saved";
+}
 async function setupEditor(){
-  if (!window.claude || typeof window.claude.use !== "function") return;
-  const [u, art] = await Promise.all([window.claude.use("user"), window.claude.use("artifact")]);
-  if (!u || !art) return;
-  let can = false; try { can = await u.canEdit(); } catch(e){}
-  if (!can) return;
+  if (editorReady) return;
+  let art = null;
+  const hashMode = location.hash === "#dirigente";
+  if (window.claude && typeof window.claude.use === "function"){
+    const [u, a] = await Promise.all([window.claude.use("user"), window.claude.use("artifact")]);
+    if (u && a){
+      let can = false; try { can = await u.canEdit(); } catch(e){}
+      if (can) art = a;
+    }
+  }
+  if (!art && !hashMode) return;
+  editorReady = true;
   const btn = $("#editBtn"), dlg = $("#editDlg"), err = $("#editErr"), save = $("#editSave");
+  if (!art){
+    save.textContent = "Guardar y descargar";
+    $("#editDlg p.sub").textContent = "Al guardar se descarga un nuevo index.html con estos datos. Súbelo a tu repositorio de GitHub reemplazando el anterior y el enlace se actualizará para todos.";
+  }
   const fields = {nombre:"#e_nombre", fechas:"#e_fechas", lugar:"#e_lugar", grupo:"#e_grupo", rama:"#e_rama", zona:"#e_zona", distrito:"#e_distrito", responsable:"#e_resp"};
   const rs = $("#e_rama"); rs.append(el("option",{value:"",text:"Sin definir"}), ...RAMAS.map(o=>el("option",{value:o,text:o})));
   btn.hidden = false;
   const pubBtn = el("button",{type:"button",class:"edit",style:"margin-left:8px",text:"Descargar versión para publicar"});
   btn.after(pubBtn);
   pubBtn.addEventListener("click", async () => {
-    const dl = await downloadsP;
-    if (!dl){ alert("Esta vista no permite descargar archivos. Ábrelo desde claude.ai con tu cuenta."); return; }
-    try { await dl.save({filename:"index.html", data:new Blob([pageSource(ACTIVIDAD)],{type:"text/html"})}); }
-    catch(e){ if (!e || e.code !== "declined") alert("No se pudo descargar el archivo. Inténtalo de nuevo."); }
+    try { await saveHtmlFile(pageSource(ACTIVIDAD)); }
+    catch(e){ alert("No se pudo descargar el archivo. Inténtalo de nuevo."); }
   });
   const cv = $("#e_sig"), ph = $("#e_sigph");
   let sctx = null, drawing = false, last = null, sigState = "keep";
@@ -871,6 +894,13 @@ async function setupEditor(){
     for (const [k,s] of Object.entries(fields)) act[k] = $(s).value.trim();
     act.firma = sigState === "new" ? cv.toDataURL("image/png") : sigState === "cleared" ? "" : (ACTIVIDAD.firma || "");
     if (!act.nombre || !act.fechas || !act.lugar){ err.textContent = "Completa el nombre, la fecha y el lugar."; return; }
+    if (!art){
+      try {
+        const r = await saveHtmlFile(pageSource(act));
+        if (r === "saved"){ err.textContent = "Listo: se descargó index.html. Súbelo a GitHub (Add file → Upload files) reemplazando el anterior."; }
+      } catch(e){ err.textContent = "No se pudo descargar el archivo. Inténtalo de nuevo."; }
+      return;
+    }
     save.disabled = true; save.textContent = "Publicando…"; err.textContent = "";
     try {
       await art.publish(pageSource(act));
@@ -887,6 +917,7 @@ async function setupEditor(){
   });
 }
 setupEditor();
+window.addEventListener("hashchange", () => { if (location.hash === "#dirigente") setupEditor(); });
 </script>
 </body>
 </html>
