@@ -200,7 +200,6 @@ input:disabled,select:disabled{background:var(--chip);color:var(--ink);opacity:1
     <div class="f"><label for="e_lugar" class="req">Lugar</label><input type="text" id="e_lugar"></div>
     <div class="f"><label for="e_grupo">Nombre del grupo</label><span class="hint">El grupo, la rama, la zona y el distrito quedan fijos en el formulario; los apoderados no los llenan</span><input type="text" id="e_grupo"></div>
     <div class="f"><label for="e_rama">Rama</label><select id="e_rama"></select></div>
-    <div class="f"><label for="e_tema">Color del formulario</label><span class="hint">Identifica a la unidad; se ve al elegirlo</span><select id="e_tema"></select></div>
     <div class="f half"><label for="e_zona">Zona</label><input type="text" id="e_zona"></div>
     <div class="f half"><label for="e_distrito">Distrito</label><input type="text" id="e_distrito"></div>
     <div class="f"><label for="e_resp">Dirigente o guiadora responsable</label><span class="hint">Aparece en la línea de firma de la ficha</span><input type="text" id="e_resp"></div>
@@ -251,7 +250,7 @@ const TEMAS = {verde:"Verde", amarillo:"Amarillo", azul:"Azul", celeste:"Celeste
 const aplicarTema = t => { document.documentElement.setAttribute("data-tema", TEMAS[t] ? t : "verde"); };
 aplicarTema(ACTIVIDAD.tema);
 const PAGE_HEAD = "<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">\n<title>Autorización y ficha médica · Salida scout<\/title>\n<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n<link href=\"https://fonts.googleapis.com/css2?family=Bitter:wght@600;800&family=Public+Sans:wght@400;500;700&display=swap\" rel=\"stylesheet\">\n<script src=\"https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js\"><\/script>";
-const PAGE_BODY = "<div class=\"wrap\">\n  <header class=\"hero\">\n    <small>Autorización y ficha médica para la salida<\/small>\n    <h1 id=\"actNombre\"><\/h1>\n    <dl>\n      <dt>Fecha<\/dt><dd id=\"actFecha\"><\/dd>\n      <dt>Lugar<\/dt><dd id=\"actLugar\"><\/dd>\n    <\/dl>\n    <button type=\"button\" class=\"edit\" id=\"editBtn\" hidden>Editar datos de la salida<\/button>\n  <\/header>\n\n  <nav class=\"steps\" aria-label=\"Avance del formulario\"><ol id=\"stepList\"><\/ol><\/nav>\n\n  <main id=\"form\"><\/main>\n\n  <div class=\"done-box\" id=\"doneBox\" role=\"status\" aria-live=\"polite\">\n    <h3>PDF listo<\/h3>\n    <p id=\"doneMsg\"><\/p>\n    <p>Envíalo a la dirigencia de la unidad por WhatsApp o correo. Si necesitas corregir algo, edita el formulario y vuelve a generarlo.<\/p>\n  <\/div>\n<\/div>\n\n<div class=\"nav\"><div class=\"in\">\n  <button class=\"btn\" id=\"prevBtn\" type=\"button\">Atrás<\/button>\n  <button class=\"btn primary\" id=\"nextBtn\" type=\"button\">Siguiente<\/button>\n<\/div><\/div>\n\n\n<dialog id=\"editDlg\" aria-labelledby=\"editTitle\">\n  <div class=\"in\">\n    <h2 id=\"editTitle\">Datos de la salida<\/h2>\n    <p class=\"sub\">Al guardar, el formulario se actualiza para todos los apoderados que tengan el enlace.<\/p>\n    <div class=\"f\"><label for=\"e_nombre\" class=\"req\">Nombre de la actividad<\/label><input type=\"text\" id=\"e_nombre\"><\/div>\n    <div class=\"f\"><label for=\"e_fechas\" class=\"req\">Fecha o fechas<\/label><span class=\"hint\">Tal como quieres que aparezca. Ej.: 14 y 15 de noviembre de 2026<\/span><input type=\"text\" id=\"e_fechas\"><\/div>\n    <div class=\"f\"><label for=\"e_lugar\" class=\"req\">Lugar<\/label><input type=\"text\" id=\"e_lugar\"><\/div>\n    <div class=\"f\"><label for=\"e_grupo\">Nombre del grupo<\/label><span class=\"hint\">El grupo, la rama, la zona y el distrito quedan fijos en el formulario; los apoderados no los llenan<\/span><input type=\"text\" id=\"e_grupo\"><\/div>\n    <div class=\"f\"><label for=\"e_rama\">Rama<\/label><select id=\"e_rama\"><\/select><\/div>\n    <div class=\"f\"><label for=\"e_tema\">Color del formulario<\/label><span class=\"hint\">Identifica a la unidad; se ve al elegirlo<\/span><select id=\"e_tema\"><\/select><\/div>\n    <div class=\"f half\"><label for=\"e_zona\">Zona<\/label><input type=\"text\" id=\"e_zona\"><\/div>\n    <div class=\"f half\"><label for=\"e_distrito\">Distrito<\/label><input type=\"text\" id=\"e_distrito\"><\/div>\n    <div class=\"f\"><label for=\"e_resp\">Dirigente o guiadora responsable<\/label><span class=\"hint\">Aparece en la línea de firma de la ficha<\/span><input type=\"text\" id=\"e_resp\"><\/div>\n    <div class=\"f\"><div class=\"q\">Logo del grupo<\/div><span class=\"hint\">Esquina superior izquierda de la autorización. PNG con fondo transparente se ve mejor<\/span>\n      <div class=\"logo-row\"><img id=\"e_lg_prev\" alt=\"\">\n        <div class=\"acts\"><input type=\"file\" id=\"e_lg_file\" accept=\"image/png,image/jpeg,image/webp\" aria-label=\"Subir logo del grupo\">\n          <button type=\"button\" class=\"linkbtn\" id=\"e_lg_def\">Usar logo original<\/button>\n          <button type=\"button\" class=\"linkbtn\" id=\"e_lg_none\">Sin logo<\/button><\/div><\/div>\n    <\/div>\n    <div class=\"f\"><div class=\"q\">Logo de rama<\/div><span class=\"hint\">Esquina superior derecha de la autorización<\/span>\n      <div class=\"logo-row\"><img id=\"e_lr_prev\" alt=\"\">\n        <div class=\"acts\"><input type=\"file\" id=\"e_lr_file\" accept=\"image/png,image/jpeg,image/webp\" aria-label=\"Subir logo de rama\">\n          <button type=\"button\" class=\"linkbtn\" id=\"e_lr_def\">Usar logo original<\/button>\n          <button type=\"button\" class=\"linkbtn\" id=\"e_lr_none\">Sin logo<\/button><\/div><\/div>\n    <\/div>\n    <div class=\"f\"><div class=\"q\">Firma del dirigente o guiadora responsable<\/div><span class=\"hint\">Se estampa en la ficha médica de cada PDF, sobre la línea de la dirigencia<\/span>\n      <div class=\"sig\" id=\"e_sigbox\"><canvas id=\"e_sig\" aria-label=\"Área de firma del dirigente\"><\/canvas><div class=\"line\"><\/div><div class=\"ph\" id=\"e_sigph\">Firma aquí<\/div><\/div>\n      <button type=\"button\" class=\"linkbtn\" id=\"e_sigclr\">Borrar firma<\/button>\n    <\/div>\n    <div class=\"err\" id=\"editErr\" role=\"alert\"><\/div>\n    <div class=\"row\">\n      <button type=\"button\" class=\"btn\" id=\"editCancel\">Cancelar<\/button>\n      <button type=\"button\" class=\"btn primary\" id=\"editSave\">Guardar y publicar<\/button>\n    <\/div>\n  <\/div>\n<\/dialog>";
+const PAGE_BODY = "<div class=\"wrap\">\n  <header class=\"hero\">\n    <small>Autorización y ficha médica para la salida<\/small>\n    <h1 id=\"actNombre\"><\/h1>\n    <dl>\n      <dt>Fecha<\/dt><dd id=\"actFecha\"><\/dd>\n      <dt>Lugar<\/dt><dd id=\"actLugar\"><\/dd>\n    <\/dl>\n    <button type=\"button\" class=\"edit\" id=\"editBtn\" hidden>Editar datos de la salida<\/button>\n  <\/header>\n\n  <nav class=\"steps\" aria-label=\"Avance del formulario\"><ol id=\"stepList\"><\/ol><\/nav>\n\n  <main id=\"form\"><\/main>\n\n  <div class=\"done-box\" id=\"doneBox\" role=\"status\" aria-live=\"polite\">\n    <h3>PDF listo<\/h3>\n    <p id=\"doneMsg\"><\/p>\n    <p>Envíalo a la dirigencia de la unidad por WhatsApp o correo. Si necesitas corregir algo, edita el formulario y vuelve a generarlo.<\/p>\n  <\/div>\n<\/div>\n\n<div class=\"nav\"><div class=\"in\">\n  <button class=\"btn\" id=\"prevBtn\" type=\"button\">Atrás<\/button>\n  <button class=\"btn primary\" id=\"nextBtn\" type=\"button\">Siguiente<\/button>\n<\/div><\/div>\n\n\n<dialog id=\"editDlg\" aria-labelledby=\"editTitle\">\n  <div class=\"in\">\n    <h2 id=\"editTitle\">Datos de la salida<\/h2>\n    <p class=\"sub\">Al guardar, el formulario se actualiza para todos los apoderados que tengan el enlace.<\/p>\n    <div class=\"f\"><label for=\"e_nombre\" class=\"req\">Nombre de la actividad<\/label><input type=\"text\" id=\"e_nombre\"><\/div>\n    <div class=\"f\"><label for=\"e_fechas\" class=\"req\">Fecha o fechas<\/label><span class=\"hint\">Tal como quieres que aparezca. Ej.: 14 y 15 de noviembre de 2026<\/span><input type=\"text\" id=\"e_fechas\"><\/div>\n    <div class=\"f\"><label for=\"e_lugar\" class=\"req\">Lugar<\/label><input type=\"text\" id=\"e_lugar\"><\/div>\n    <div class=\"f\"><label for=\"e_grupo\">Nombre del grupo<\/label><span class=\"hint\">El grupo, la rama, la zona y el distrito quedan fijos en el formulario; los apoderados no los llenan<\/span><input type=\"text\" id=\"e_grupo\"><\/div>\n    <div class=\"f\"><label for=\"e_rama\">Rama<\/label><select id=\"e_rama\"><\/select><\/div>\n    <div class=\"f half\"><label for=\"e_zona\">Zona<\/label><input type=\"text\" id=\"e_zona\"><\/div>\n    <div class=\"f half\"><label for=\"e_distrito\">Distrito<\/label><input type=\"text\" id=\"e_distrito\"><\/div>\n    <div class=\"f\"><label for=\"e_resp\">Dirigente o guiadora responsable<\/label><span class=\"hint\">Aparece en la línea de firma de la ficha<\/span><input type=\"text\" id=\"e_resp\"><\/div>\n    <div class=\"f\"><div class=\"q\">Logo del grupo<\/div><span class=\"hint\">Esquina superior izquierda de la autorización. PNG con fondo transparente se ve mejor<\/span>\n      <div class=\"logo-row\"><img id=\"e_lg_prev\" alt=\"\">\n        <div class=\"acts\"><input type=\"file\" id=\"e_lg_file\" accept=\"image/png,image/jpeg,image/webp\" aria-label=\"Subir logo del grupo\">\n          <button type=\"button\" class=\"linkbtn\" id=\"e_lg_def\">Usar logo original<\/button>\n          <button type=\"button\" class=\"linkbtn\" id=\"e_lg_none\">Sin logo<\/button><\/div><\/div>\n    <\/div>\n    <div class=\"f\"><div class=\"q\">Logo de rama<\/div><span class=\"hint\">Esquina superior derecha de la autorización<\/span>\n      <div class=\"logo-row\"><img id=\"e_lr_prev\" alt=\"\">\n        <div class=\"acts\"><input type=\"file\" id=\"e_lr_file\" accept=\"image/png,image/jpeg,image/webp\" aria-label=\"Subir logo de rama\">\n          <button type=\"button\" class=\"linkbtn\" id=\"e_lr_def\">Usar logo original<\/button>\n          <button type=\"button\" class=\"linkbtn\" id=\"e_lr_none\">Sin logo<\/button><\/div><\/div>\n    <\/div>\n    <div class=\"f\"><div class=\"q\">Firma del dirigente o guiadora responsable<\/div><span class=\"hint\">Se estampa en la ficha médica de cada PDF, sobre la línea de la dirigencia<\/span>\n      <div class=\"sig\" id=\"e_sigbox\"><canvas id=\"e_sig\" aria-label=\"Área de firma del dirigente\"><\/canvas><div class=\"line\"><\/div><div class=\"ph\" id=\"e_sigph\">Firma aquí<\/div><\/div>\n      <button type=\"button\" class=\"linkbtn\" id=\"e_sigclr\">Borrar firma<\/button>\n    <\/div>\n    <div class=\"err\" id=\"editErr\" role=\"alert\"><\/div>\n    <div class=\"row\">\n      <button type=\"button\" class=\"btn\" id=\"editCancel\">Cancelar<\/button>\n      <button type=\"button\" class=\"btn primary\" id=\"editSave\">Guardar y publicar<\/button>\n    <\/div>\n  <\/div>\n<\/dialog>";
 function pageSource(act){
   const css = document.getElementById("css").textContent;
   const js = document.getElementById("app").textContent;
@@ -881,7 +880,7 @@ async function saveHtmlFile(html){
 async function setupEditor(){
   if (editorReady) return;
   let art = null;
-  const hashMode = location.hash === "#dirigente";
+  const hashMode = ["#dirigente","#administrador","#admin"].includes(location.hash.toLowerCase());
   if (window.claude && typeof window.claude.use === "function"){
     const [u, a] = await Promise.all([window.claude.use("user"), window.claude.use("artifact")]);
     if (u && a){
@@ -963,11 +962,8 @@ async function setupEditor(){
     };
     renderGh();
   }
-  const fields = {nombre:"#e_nombre", fechas:"#e_fechas", lugar:"#e_lugar", grupo:"#e_grupo", rama:"#e_rama", tema:"#e_tema", zona:"#e_zona", distrito:"#e_distrito", responsable:"#e_resp"};
+  const fields = {nombre:"#e_nombre", fechas:"#e_fechas", lugar:"#e_lugar", grupo:"#e_grupo", rama:"#e_rama", zona:"#e_zona", distrito:"#e_distrito", responsable:"#e_resp"};
   const rs = $("#e_rama"); rs.append(el("option",{value:"",text:"Sin definir"}), ...RAMAS.map(o=>el("option",{value:o,text:o})));
-  const ts = $("#e_tema"); ts.append(...Object.entries(TEMAS).map(([v,t])=>el("option",{value:v,text:t})));
-  ts.addEventListener("change", () => aplicarTema(ts.value));
-  dlg.addEventListener("close", () => aplicarTema(ACTIVIDAD.tema));
   btn.hidden = false;
   const cv = $("#e_sig"), ph = $("#e_sigph");
   let sctx = null, drawing = false, last = null, sigState = "keep";
@@ -1029,9 +1025,17 @@ async function setupEditor(){
     $("#"+L.id+"_def").addEventListener("click", () => { logoState[k] = ""; showLogo(k); });
     $("#"+L.id+"_none").addEventListener("click", () => { logoState[k] = "none"; showLogo(k); });
   });
+  /* #dirigente: solo actividad, fechas y lugar. #administrador (y Claude): todo */
+  const ADMIN_ONLY = ["#e_grupo","#e_rama","#e_zona","#e_distrito","#e_resp","#e_lg_prev","#e_lr_prev","#e_sig"];
+  const applyMode = () => {
+    const limited = !art && location.hash.toLowerCase() === "#dirigente";
+    ADMIN_ONLY.forEach(s => { const n = $(s), f = n && n.closest(".f"); if (f) f.hidden = limited; });
+    $("#editTitle").textContent = limited ? "Datos de la salida" : "Administración del formulario";
+  };
   btn.addEventListener("click", () => {
+    applyMode();
     Object.keys(LOGOS).forEach(k => { logoState[k] = ACTIVIDAD[k] || ""; showLogo(k); });
-    for (const [k,s] of Object.entries(fields)) $(s).value = ACTIVIDAD[k] || (k === "tema" ? "verde" : "");
+    for (const [k,s] of Object.entries(fields)) $(s).value = ACTIVIDAD[k] || "";
     err.textContent = ""; dlg.showModal();
     sigState = "keep"; requestAnimationFrame(() => { sizePad(); showExisting(); });
   });
@@ -1039,6 +1043,7 @@ async function setupEditor(){
   save.addEventListener("click", async () => {
     const act = {};
     for (const [k,s] of Object.entries(fields)) act[k] = $(s).value.trim();
+    act.tema = ACTIVIDAD.tema || "verde";
     act.logoGrupo = logoState.logoGrupo || ""; act.logoRama = logoState.logoRama || "";
     act.firma = sigState === "new" ? cv.toDataURL("image/png") : sigState === "cleared" ? "" : (ACTIVIDAD.firma || "");
     if (!act.nombre || !act.fechas || !act.lugar){ err.textContent = "Completa el nombre, la fecha y el lugar."; return; }
@@ -1082,7 +1087,7 @@ async function setupEditor(){
   });
 }
 setupEditor();
-window.addEventListener("hashchange", () => { if (location.hash === "#dirigente") setupEditor(); });
+window.addEventListener("hashchange", () => { if (["#dirigente","#administrador","#admin"].includes(location.hash.toLowerCase())) setupEditor(); });
 </script>
 </body>
 </html>
